@@ -1,0 +1,799 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Online Save Life Bridge | Hyper-Local Emergency Network</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            emergency: {
+              50: '#fff1f2',
+              100: '#ffe4e6',
+              500: '#f43f5e',
+              600: '#e11d48',
+              700: '#be123c',
+              800: '#9f1239',
+              900: '#881337',
+            },
+            guardian: {
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col antialiased selection:bg-rose-500 selection:text-white">
+
+  <!-- LOGIN / REGISTER SCREEN -->
+  <div id="authScreen" class="auth-screen">
+
+    <div class="auth-card">
+
+      <div class="auth-logo">
+        <div class="auth-logo-icon">
+          <i class="fa-solid fa-heart-pulse"></i>
+        </div>
+        <h1>SaveLife<span>Bridge</span></h1>
+        <p>Hyper-Local Emergency Response Network</p>
+      </div>
+
+      <div class="auth-tabs">
+        <button type="button" id="showLogin" class="auth-tab active">
+          Login
+        </button>
+
+        <button type="button" id="showRegister" class="auth-tab">
+          Register
+        </button>
+      </div>
+
+      <!-- LOGIN FORM -->
+      <form id="loginForm" class="auth-form">
+
+        <h2>Welcome Back!</h2>
+        <p>Login to access your emergency network.</p>
+
+        <label for="loginEmail">Email Address</label>
+        <div class="auth-input-wrap">
+          <i class="fa-solid fa-envelope"></i>
+          <input
+            type="email"
+            id="loginEmail"
+            placeholder="Enter your email"
+            autocomplete="email"
+            required
+          />
+        </div>
+
+        <label for="loginPassword">Password</label>
+        <div class="auth-input-wrap">
+          <i class="fa-solid fa-lock"></i>
+          <input
+            type="password"
+            id="loginPassword"
+            placeholder="Enter your password"
+            autocomplete="current-password"
+            required
+          />
+        </div>
+
+        <button type="submit" class="auth-submit">
+          <i class="fa-solid fa-right-to-bracket"></i>
+          Login to SaveLife Bridge
+        </button>
+
+        <div id="loginMessage" class="auth-message" role="status"></div>
+
+        <div class="auth-note">
+          <i class="fa-solid fa-shield-halved"></i>
+          Your emergency network starts here.
+        </div>
+
+      </form>
+
+      <!-- REGISTER FORM -->
+      <form id="registerForm" class="auth-form hidden">
+
+        <h2>Create Account</h2>
+        <p>Join the SaveLife Bridge community.</p>
+
+        <label for="registerName">Full Name</label>
+        <div class="auth-input-wrap">
+          <i class="fa-solid fa-user"></i>
+          <input
+            type="text"
+            id="registerName"
+            placeholder="Enter your full name"
+            autocomplete="name"
+            required
+          />
+        </div>
+
+        <label for="registerEmail">Email Address</label>
+        <div class="auth-input-wrap">
+          <i class="fa-solid fa-envelope"></i>
+          <input
+            type="email"
+            id="registerEmail"
+            placeholder="Enter your email"
+            autocomplete="email"
+            required
+          />
+        </div>
+
+        <label for="registerPassword">Password</label>
+        <div class="auth-input-wrap">
+          <i class="fa-solid fa-lock"></i>
+          <input
+            type="password"
+            id="registerPassword"
+            placeholder="Minimum 6 characters"
+            minlength="6"
+            autocomplete="new-password"
+            required
+          />
+        </div>
+
+        <label for="registerRole">Select Your Role</label>
+        <div class="auth-input-wrap">
+          <i class="fa-solid fa-user-shield"></i>
+          <select id="registerRole" required>
+            <option value="">Select your role</option>
+            <option value="Victim">Citizen / SOS User</option>
+            <option value="Guardian">Community Guardian</option>
+            <option value="Both">Both</option>
+          </select>
+        </div>
+
+        <button type="submit" class="auth-submit">
+          <i class="fa-solid fa-user-plus"></i>
+          Create Account
+        </button>
+
+        <div id="registerMessage" class="auth-message" role="status"></div>
+
+        <div class="auth-note">
+          <i class="fa-solid fa-heart"></i>
+          Together, we can save lives.
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+  <!-- STROBE LIGHT OVERLAY -->
+  <div id="strobeOverlay" class="fixed inset-0 z-50 pointer-events-none hidden"></div>
+
+  <!-- TOP EMERGENCY BAR -->
+  <header class="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 sticky top-0 z-40">
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+
+      <!-- BRAND -->
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+
+        <div class="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-tr from-rose-600 to-red-500 text-white shadow-lg shadow-rose-600/30">
+
+          <i class="fa-solid fa-heart-pulse text-xl animate-pulse"></i>
+
+          <span class="absolute -top-1 -right-1 flex h-3 w-3">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
+          </span>
+
+        </div>
+
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="font-black text-lg sm:text-xl tracking-tight text-white">
+              SaveLife<span class="text-rose-500">Bridge</span>
+            </span>
+
+            <span class="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">
+              1-KM RADAR
+            </span>
+          </div>
+
+          <p class="text-[11px] text-slate-400 hidden sm:block">
+            Instead of searching for help, help comes to you.
+          </p>
+        </div>
+
+      </div>
+
+      <!-- MODE SWITCHER -->
+      <div class="bg-slate-800/80 p-1 rounded-full border border-slate-700/60 flex items-center space-x-1">
+
+        <button id="btnModeVictim" class="px-3 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 bg-rose-600 text-white shadow-md shadow-rose-600/30 flex items-center space-x-1.5">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span>SOS Mode</span>
+        </button>
+
+        <button id="btnModeResponder" class="px-3 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 text-slate-300 hover:text-white flex items-center space-x-1.5">
+          <i class="fa-solid fa-shield-halved"></i>
+          <span>Guardian Mode</span>
+        </button>
+
+      </div>
+
+      <!-- QUICK ACTIONS -->
+      <div class="flex items-center space-x-2">
+
+        <button id="btnOpenCPR" title="CPR & First-Aid Assistant" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-amber-400 text-sm flex items-center space-x-1 transition">
+          <i class="fa-solid fa-hand-holding-medical"></i>
+          <span class="hidden md:inline font-medium text-xs">CPR Metronome</span>
+        </button>
+
+        <button id="btnOpenICE" title="In Case of Emergency Card" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 text-sm flex items-center space-x-1 transition">
+          <i class="fa-solid fa-id-card"></i>
+          <span class="hidden md:inline font-medium text-xs">ICE Card</span>
+        </button>
+
+        <a href="/api/download-zip" class="hidden lg:flex items-center space-x-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-300 text-xs px-2.5 py-2 rounded-lg transition font-medium">
+          <i class="fa-solid fa-file-zipper"></i>
+          <span>Get Code (.ZIP)</span>
+        </a>
+
+        <!-- LOGOUT BUTTON -->
+        <button id="btnLogout" class="hidden p-2 rounded-lg bg-rose-600/20 hover:bg-rose-600/40 border border-rose-500/40 text-rose-300 text-xs font-bold transition">
+          <i class="fa-solid fa-right-from-bracket"></i>
+          <span class="hidden md:inline">Logout</span>
+        </button>
+
+      </div>
+
+    </div>
+  </header>
+
+  <!-- NOTIFICATION BANNER -->
+  <div id="alertNotificationBanner" class="hidden transition-all duration-300 bg-gradient-to-r from-rose-600 via-red-600 to-amber-600 text-white py-2 px-4 text-center text-sm font-bold shadow-lg flex items-center justify-between z-30">
+
+    <div class="flex items-center justify-center space-x-2 mx-auto">
+      <i class="fa-solid fa-bell animate-bounce"></i>
+      <span id="bannerText">EMERGENCY ALERT BROADCASTED WITHIN 1 KM!</span>
+    </div>
+
+    <button onclick="dismissBanner()" class="text-white/80 hover:text-white px-2">
+      &times;
+    </button>
+
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- LEFT COLUMN -->
+    <section class="lg:col-span-5 flex flex-col space-y-6">
+
+      <!-- VICTIM PANEL -->
+      <div id="victimPanel" class="space-y-6 transition-all duration-300">
+
+        <div class="bg-gradient-to-b from-slate-900 to-slate-900/90 border border-rose-500/30 rounded-3xl p-6 shadow-2xl relative overflow-hidden">
+
+          <div class="absolute -top-20 -right-20 w-48 h-48 bg-rose-600/20 rounded-full blur-3xl pointer-events-none"></div>
+
+          <div class="text-center mb-6">
+
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold tracking-wide uppercase bg-rose-500/10 text-rose-400 border border-rose-500/20">
+              <span class="w-2 h-2 rounded-full bg-rose-500 mr-2 animate-ping"></span>
+              Emergency Dispatch Terminal
+            </span>
+
+            <h1 class="text-2xl sm:text-3xl font-black text-white mt-2 tracking-tight">
+              Need Immediate Help?
+            </h1>
+
+            <p class="text-xs text-slate-400 mt-1">
+              Press & hold the panic button. Responders in 1 km will receive your GPS coordinates.
+            </p>
+
+          </div>
+
+          <!-- SOS BUTTON -->
+          <div class="flex flex-col items-center justify-center my-4">
+
+            <div class="relative flex items-center justify-center">
+
+              <div id="sosRing" class="absolute w-52 h-52 rounded-full border-2 border-rose-500/40 animate-ping pointer-events-none opacity-40"></div>
+
+              <div class="absolute w-44 h-44 rounded-full bg-rose-600/10 animate-pulse pointer-events-none"></div>
+
+              <svg class="w-40 h-40 transform -rotate-90 pointer-events-none absolute" viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="54" stroke="currentColor" stroke-width="6" class="text-slate-800" fill="transparent" />
+
+                <circle id="holdProgressCircle" cx="60" cy="60" r="54" stroke="currentColor" stroke-width="6" class="text-white transition-all duration-75" fill="transparent" stroke-dasharray="339.292" stroke-dashoffset="339.292" stroke-linecap="round" />
+              </svg>
+
+              <button id="sosTriggerButton" class="relative z-10 w-32 h-32 rounded-full bg-gradient-to-tr from-rose-700 via-rose-600 to-red-500 text-white font-black text-2xl tracking-widest shadow-2xl shadow-rose-600/60 active:scale-95 transition select-none flex flex-col items-center justify-center">
+
+                <i class="fa-solid fa-tower-broadcast text-2xl mb-1 animate-bounce"></i>
+                <span>SOS</span>
+                <span class="text-[9px] font-medium tracking-normal text-rose-200 mt-0.5">HOLD 2 SEC</span>
+
+              </button>
+
+            </div>
+
+            <p id="holdStatusText" class="text-xs font-semibold text-slate-400 mt-4 text-center">
+              Press and hold for 2 seconds to activate
+            </p>
+
+          </div>
+
+          <!-- EMERGENCY CATEGORIES -->
+          <div class="mt-6">
+
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
+              Select Emergency Type:
+            </label>
+
+            <div class="grid grid-cols-2 gap-2" id="categoryGrid">
+
+              <button type="button" data-cat="Medical" data-icon="fa-briefcase-medical" class="cat-btn active flex items-center space-x-2.5 p-3 rounded-xl bg-slate-800 border-2 border-rose-500 text-left transition hover:bg-slate-700/80">
+                <div class="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0">
+                  <i class="fa-solid fa-briefcase-medical"></i>
+                </div>
+                <div>
+                  <div class="text-xs font-bold text-white leading-tight">Medical</div>
+                  <div class="text-[10px] text-slate-400">Heart, trauma, fall</div>
+                </div>
+              </button>
+
+              <button type="button" data-cat="Accident" data-icon="fa-car-crash" class="cat-btn flex items-center space-x-2.5 p-3 rounded-xl bg-slate-800 border-2 border-transparent text-left transition hover:bg-slate-700/80">
+                <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+                  <i class="fa-solid fa-car-burst"></i>
+                </div>
+                <div>
+                  <div class="text-xs font-bold text-white leading-tight">Accident</div>
+                  <div class="text-[10px] text-slate-400">Vehicle collision</div>
+                </div>
+              </button>
+
+              <button type="button" data-cat="Personal Safety" data-icon="fa-shield-halved" class="cat-btn flex items-center space-x-2.5 p-3 rounded-xl bg-slate-800 border-2 border-transparent text-left transition hover:bg-slate-700/80">
+                <div class="w-8 h-8 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center shrink-0">
+                  <i class="fa-solid fa-shield-cat"></i>
+                </div>
+                <div>
+                  <div class="text-xs font-bold text-white leading-tight">Personal / Safety</div>
+                  <div class="text-[10px] text-slate-400">Threat, harassment</div>
+                </div>
+              </button>
+
+              <button type="button" data-cat="Fire Emergency" data-icon="fa-fire" class="cat-btn flex items-center space-x-2.5 p-3 rounded-xl bg-slate-800 border-2 border-transparent text-left transition hover:bg-slate-700/80">
+                <div class="w-8 h-8 rounded-lg bg-orange-500/20 text-orange-400 flex items-center justify-center shrink-0">
+                  <i class="fa-solid fa-fire-extinguisher"></i>
+                </div>
+                <div>
+                  <div class="text-xs font-bold text-white leading-tight">Fire Incident</div>
+                  <div class="text-[10px] text-slate-400">Flame, smoke, gas</div>
+                </div>
+              </button>
+
+              <button type="button" data-cat="Urgent Blood / Meds" data-icon="fa-droplet" class="cat-btn flex items-center space-x-2.5 p-3 rounded-xl bg-slate-800 border-2 border-transparent text-left transition hover:bg-slate-700/80">
+                <div class="w-8 h-8 rounded-lg bg-red-500/20 text-red-400 flex items-center justify-center shrink-0">
+                  <i class="fa-solid fa-droplet"></i>
+                </div>
+                <div>
+                  <div class="text-xs font-bold text-white leading-tight">Blood / Meds</div>
+                  <div class="text-[10px] text-slate-400">Urgent O+ / platelet</div>
+                </div>
+              </button>
+
+              <button type="button" data-cat="Other Emergency" data-icon="fa-circle-exclamation" class="cat-btn flex items-center space-x-2.5 p-3 rounded-xl bg-slate-800 border-2 border-transparent text-left transition hover:bg-slate-700/80">
+                <div class="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
+                  <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div>
+                  <div class="text-xs font-bold text-white leading-tight">General / Other</div>
+                  <div class="text-[10px] text-slate-400">Need immediate help</div>
+                </div>
+              </button>
+
+            </div>
+          </div>
+
+          <!-- SIREN AND STROBE -->
+          <div class="mt-6 pt-5 border-t border-slate-800 flex items-center justify-between gap-3">
+
+            <button id="btnToggleSiren" class="flex-1 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold flex items-center justify-center space-x-2 transition text-slate-300">
+              <i class="fa-solid fa-bullhorn text-rose-400"></i>
+              <span id="sirenLabel">Audio Siren: OFF</span>
+            </button>
+
+            <button id="btnToggleStrobe" class="flex-1 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold flex items-center justify-center space-x-2 transition text-slate-300">
+              <i class="fa-solid fa-bolt-lightning text-amber-400"></i>
+              <span id="strobeLabel">Strobe Light: OFF</span>
+            </button>
+
+          </div>
+
+          <!-- WHATSAPP SOS -->
+          <div class="mt-4">
+            <button id="btnWhatsAppBroadcast" class="w-full py-2.5 px-4 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center justify-center space-x-2 transition">
+              <i class="fa-brands fa-whatsapp text-base"></i>
+              <span>1-Click WhatsApp SOS to Family & ICE</span>
+            </button>
+          </div>
+
+          <!-- ACTIVE SOS CARD -->
+          <div id="activeSosCard" class="hidden mt-6 p-4 rounded-2xl bg-rose-950/80 border-2 border-rose-500 shadow-xl animate-fade-in">
+
+            <div class="flex items-start justify-between">
+
+              <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-full bg-rose-600 flex items-center justify-center text-white text-lg animate-spin-slow">
+                  <i class="fa-solid fa-satellite-dish"></i>
+                </div>
+
+                <div>
+                  <div class="text-xs font-bold uppercase tracking-wide text-rose-300">
+                    SOS ACTIVE & BROADCASTING
+                  </div>
+                  <div class="text-sm font-black text-white" id="activeCategoryName">
+                    Medical Emergency
+                  </div>
+                </div>
+              </div>
+
+              <span class="px-2 py-1 rounded bg-rose-500 text-white text-[10px] font-black uppercase tracking-wider animate-pulse">
+                LIVE
+              </span>
+
+            </div>
+
+            <div class="mt-3 pt-3 border-t border-rose-800/60 grid grid-cols-2 gap-2 text-xs">
+
+              <div>
+                <span class="text-rose-300/80">Responders Alerted:</span>
+                <p class="font-bold text-white text-base" id="activeRespondersCount">4 nearby</p>
+              </div>
+
+              <div>
+                <span class="text-rose-300/80">Elapsed Time:</span>
+                <p class="font-bold text-white text-base" id="activeTimerText">00:15</p>
+              </div>
+
+            </div>
+
+            <div class="mt-3 flex gap-2">
+              <button id="btnCancelSos" class="w-full py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition">
+                <i class="fa-solid fa-xmark mr-1"></i>
+                Cancel / I am Safe Now
+              </button>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+      <!-- GUARDIAN PANEL -->
+      <div id="responderPanel" class="hidden space-y-6 transition-all duration-300">
+
+        <div class="bg-slate-900 border border-guardian-500/30 rounded-3xl p-6 shadow-2xl">
+
+          <div class="flex items-center justify-between mb-4">
+
+            <div>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                <i class="fa-solid fa-shield-heart mr-1.5"></i>
+                Community Guardian
+              </span>
+
+              <h2 class="text-xl font-black text-white mt-1">
+                Active Radar Monitoring
+              </h2>
+            </div>
+
+            <div class="text-right">
+              <div class="text-xs text-slate-400">Coverage</div>
+              <div class="text-sm font-bold text-sky-400">1.0 KM Perimeter</div>
+            </div>
+
+          </div>
+
+          <!-- GOOD SAMARITAN CARD -->
+          <div class="p-3 rounded-xl bg-slate-800/80 border border-slate-700/60 text-xs text-slate-300 flex items-start space-x-2.5 mb-4">
+
+            <i class="fa-solid fa-scale-balanced text-sky-400 text-base mt-0.5"></i>
+
+            <div>
+              <span class="font-bold text-white">Good Samaritan Protection:</span>
+              <p class="text-[11px] text-slate-400">
+                You are legally shielded when offering first aid in good faith. Your presence can save a life before the ambulance arrives.
+              </p>
+            </div>
+
+          </div>
+
+          <!-- ALERTS -->
+          <div>
+
+            <div class="flex items-center justify-between text-xs font-bold uppercase text-slate-400 mb-3">
+
+              <span>
+                Nearby Emergencies (<span id="alertCountBadge">1</span>)
+              </span>
+
+              <span class="text-emerald-400 flex items-center">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-ping"></span>
+                Live Feed
+              </span>
+
+            </div>
+
+            <div id="alertsContainer" class="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+            </div>
+
+          </div>
+
+          <!-- DEMO BUTTON -->
+          <div class="mt-6 pt-4 border-t border-slate-800">
+
+            <button id="btnSimulateNearby" class="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold flex items-center justify-center space-x-2 transition">
+              <i class="fa-solid fa-wand-magic-sparkles text-amber-400"></i>
+              <span>Simulate Nearby Emergency (Judge Demo)</span>
+            </button>
+
+          </div>
+
+        </div>
+      </div>
+
+      <!-- IMPACT STATS -->
+      <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 grid grid-cols-3 gap-2 text-center">
+
+        <div>
+          <div class="text-xs text-slate-400">Response Delay</div>
+          <div class="text-lg font-black text-emerald-400">&lt; 3 mins</div>
+          <div class="text-[10px] text-slate-500">vs 22m city avg</div>
+        </div>
+
+        <div>
+          <div class="text-xs text-slate-400">Radar Radius</div>
+          <div class="text-lg font-black text-rose-500">1,000 m</div>
+          <div class="text-[10px] text-slate-500">Walking distance</div>
+        </div>
+
+        <div>
+          <div class="text-xs text-slate-400">Good Samaritans</div>
+          <div class="text-lg font-black text-sky-400">28 Active</div>
+          <div class="text-[10px] text-slate-500">In your district</div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- RIGHT COLUMN MAP -->
+    <section class="lg:col-span-7 flex flex-col space-y-4">
+
+      <div class="relative bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl flex-1 min-h-[500px] flex flex-col">
+
+        <div class="absolute top-4 left-4 right-4 z-[500] flex items-center justify-between pointer-events-none">
+
+          <div class="pointer-events-auto bg-slate-900/90 backdrop-blur-md border border-slate-700/80 px-3 py-1.5 rounded-xl shadow-lg flex items-center space-x-2 text-xs font-semibold text-slate-200">
+
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span id="gpsStatusText">GPS: Detecting Location...</span>
+
+          </div>
+
+          <button id="btnRecenterMap" title="Center on my location" class="pointer-events-auto w-9 h-9 rounded-xl bg-slate-900/90 backdrop-blur-md border border-slate-700/80 text-white flex items-center justify-center hover:bg-slate-800 shadow-lg transition">
+            <i class="fa-solid fa-crosshairs text-sm"></i>
+          </button>
+
+        </div>
+
+        <div id="map" class="w-full flex-1 z-0 min-h-[480px]"></div>
+
+        <div class="bg-slate-900/95 border-t border-slate-800 p-3 px-4 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-300">
+
+          <div class="flex items-center space-x-4">
+
+            <span class="flex items-center space-x-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block"></span>
+              <span>You</span>
+            </span>
+
+            <span class="flex items-center space-x-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block animate-ping"></span>
+              <span>Emergency (SOS)</span>
+            </span>
+
+            <span class="flex items-center space-x-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span>
+              <span>Volunteers</span>
+            </span>
+
+            <span class="flex items-center space-x-1.5">
+              <span class="w-4 h-0.5 bg-rose-500/80 inline-block border-t border-dashed"></span>
+              <span>1-KM Boundary</span>
+            </span>
+
+          </div>
+
+          <span class="text-slate-500 font-mono">
+            OpenStreetMap &copy; BridgeEngine
+          </span>
+
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- CPR MODAL -->
+  <div id="cprModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
+
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl relative">
+
+      <button onclick="closeModal('cprModal')" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg">
+        &times;
+      </button>
+
+      <div class="flex items-center space-x-3 mb-4">
+
+        <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-lg">
+          <i class="fa-solid fa-heart-circle-bolt"></i>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-black text-white">Emergency CPR Metronome</h3>
+          <p class="text-xs text-slate-400">AHA Guideline: 100 - 120 compressions per minute</p>
+        </div>
+
+      </div>
+
+      <div class="bg-slate-950 rounded-2xl p-6 text-center border border-slate-800 my-4 flex flex-col items-center">
+
+        <div id="cprPulseCircle" class="w-28 h-28 rounded-full bg-amber-500/20 border-4 border-amber-500 flex items-center justify-center transition-all duration-75">
+          <i class="fa-solid fa-hands-holding-child text-3xl text-amber-400"></i>
+        </div>
+
+        <div class="text-2xl font-black text-white mt-4" id="cprBpmDisplay">
+          110 BPM
+        </div>
+
+        <p class="text-xs text-slate-400 mt-1">
+          Push hard and fast in center of chest (5-6 cm deep)
+        </p>
+
+        <button id="btnToggleCprAudio" class="mt-4 px-6 py-2 rounded-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center space-x-2 shadow-lg transition">
+          <i class="fa-solid fa-play" id="cprPlayIcon"></i>
+          <span id="cprPlayText">Start CPR Audio Rhythm</span>
+        </button>
+
+      </div>
+
+      <div class="space-y-2 text-xs">
+
+        <div class="p-2.5 rounded-lg bg-slate-800/80 border border-slate-700/60">
+          <strong class="text-rose-400">1. Severe Bleeding:</strong>
+          Apply firm, continuous direct pressure with a clean cloth. Do not remove soaked gauze.
+        </div>
+
+        <div class="p-2.5 rounded-lg bg-slate-800/80 border border-slate-700/60">
+          <strong class="text-amber-400">2. Choking (Conscious):</strong>
+          5 back blows between shoulder blades followed by 5 abdominal thrusts (Heimlich).
+        </div>
+
+        <div class="p-2.5 rounded-lg bg-slate-800/80 border border-slate-700/60">
+          <strong class="text-sky-400">3. Fainting / Shock:</strong>
+          Lay victim flat on back, elevate legs 12 inches if no spine injury suspected.
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ICE MEDICAL CARD MODAL -->
+  <div id="iceModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
+
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl relative">
+
+      <button onclick="closeModal('iceModal')" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg">
+        &times;
+      </button>
+
+      <div class="flex items-center space-x-3 mb-4">
+
+        <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg">
+          <i class="fa-solid fa-id-card"></i>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-black text-white">Digital ICE Emergency Profile</h3>
+          <p class="text-xs text-slate-400">
+            Visible to nearby responders if you are incapacitated
+          </p>
+        </div>
+
+      </div>
+
+      <form id="iceForm" class="space-y-3 text-xs">
+
+        <div>
+          <label class="block text-slate-300 font-bold mb-1">Full Name</label>
+          <input type="text" id="iceName" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-emerald-500" value="Rahul Verma" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+
+          <div>
+            <label class="block text-slate-300 font-bold mb-1">Blood Group</label>
+            <select id="iceBlood" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-emerald-500">
+              <option value="O+">O Positive (O+)</option>
+              <option value="O-">O Negative (O-)</option>
+              <option value="A+">A Positive (A+)</option>
+              <option value="A-">A Negative (A-)</option>
+              <option value="B+">B Positive (B+)</option>
+              <option value="B-">B Negative (B-)</option>
+              <option value="AB+">AB Positive (AB+)</option>
+              <option value="AB-">AB Negative (AB-)</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-slate-300 font-bold mb-1">Organ Donor</label>
+            <select id="iceDonor" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-emerald-500">
+              <option value="Yes">Yes (Pledged)</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-bold mb-1">Critical Allergies / Conditions</label>
+          <input type="text" id="iceAllergies" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-emerald-500" value="Penicillin Allergy, Asthmatic" />
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-bold mb-1">Emergency Contact 1 (Family Phone)</label>
+          <input type="text" id="icePhone1" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-emerald-500" value="+91 98765 12345 (Father)" />
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-bold mb-1">Emergency Contact 2</label>
+          <input type="text" id="icePhone2" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-emerald-500" value="+91 98123 45678 (Sister)" />
+        </div>
+
+        <button type="submit" class="w-full mt-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition">
+          Save Emergency ICE Card
+        </button>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- SCRIPTS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Authentication Script -->
+  <script src="auth.js"></script>
+
+  <!-- Main Application Script -->
+  <script src="app.js"></script>
+
+</body>
+</html>
